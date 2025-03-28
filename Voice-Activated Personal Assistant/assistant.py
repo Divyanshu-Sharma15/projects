@@ -2,14 +2,15 @@ import speech_recognition as sr
 import pyttsx3
 import requests
 import datetime
-import time
-import schedule
-import json
+import webbrowser
+import os
+import wikipedia
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
 
 # Initialize text-to-speech engine
 engine = pyttsx3.init()
+
 def speak(text):
     engine.say(text)
     engine.runAndWait()
@@ -58,16 +59,44 @@ def get_news():
     else:
         speak("I couldn't fetch the news at the moment.")
 
-# Set a reminder
-def set_reminder(task, delay):
-    def remind():
-        speak(f"Reminder: {task}")
-    
-    schedule.every(delay).seconds.do(remind)
-    speak(f"Reminder set for {task} in {delay} seconds.")
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+# Tell the current time
+def tell_time():
+    now = datetime.datetime.now()
+    current_time = now.strftime("%I:%M %p")
+    speak(f"The current time is {current_time}.")
+
+# Tell the current date
+def tell_date():
+    now = datetime.datetime.now()
+    current_date = now.strftime("%A, %B %d, %Y")
+    speak(f"Today's date is {current_date}.")
+
+# Search Google
+def search_google(query):
+    speak(f"Searching Google for {query}")
+    webbrowser.open(f"https://www.google.com/search?q={query}")
+
+# Search Wikipedia
+def search_wikipedia(query):
+    speak(f"Searching Wikipedia for {query}")
+    try:
+        summary = wikipedia.summary(query, sentences=2)
+        speak(summary)
+    except wikipedia.exceptions.DisambiguationError:
+        speak("There are multiple results. Please be more specific.")
+    except wikipedia.exceptions.PageError:
+        speak("I couldn't find anything on Wikipedia about that.")
+
+# Open applications
+def open_application(app_name):
+    if "notepad" in app_name:
+        os.system("notepad")
+    elif "calculator" in app_name:
+        os.system("calc")
+    elif "browser" in app_name:
+        webbrowser.open("https://www.google.com")
+    else:
+        speak("I can't open that application.")
 
 # Integrate Google Calendar API
 def add_google_calendar_event(event_name, event_time):
@@ -97,12 +126,19 @@ def main():
                 get_weather(city)
         elif "news" in command:
             get_news()
-        elif "reminder" in command:
-            speak("What should I remind you about?")
-            task = recognize_speech()
-            speak("In how many seconds?")
-            delay = int(recognize_speech())
-            set_reminder(task, delay)
+        elif "time" in command:
+            tell_time()
+        elif "date" in command:
+            tell_date()
+        elif "search google for" in command:
+            query = command.replace("search google for", "").strip()
+            search_google(query)
+        elif "search wikipedia for" in command:
+            query = command.replace("search wikipedia for", "").strip()
+            search_wikipedia(query)
+        elif "open" in command:
+            app_name = command.replace("open", "").strip()
+            open_application(app_name)
         elif "add event" in command:
             speak("What is the event name?")
             event_name = recognize_speech()
